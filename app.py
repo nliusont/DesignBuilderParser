@@ -67,20 +67,22 @@ if st.session_state['zone_tables']:
             for title, df in cooling_tables:
                 st.write(f"#### {title}")
                 df = df.round(2).fillna('')
-                styled_df = df.style.set_table_styles(
-                    [{'selector': 'th', 'props': [('white-space', 'normal'), ('word-wrap', 'break-word')]}]
-                )
-                st.write(styled_df.to_html(), unsafe_allow_html=True)
+                st.dataframe(df)
+                # styled_df = df.style.set_table_styles(
+                #     [{'selector': 'th', 'props': [('white-space', 'normal'), ('word-wrap', 'break-word')]}]
+                # )
+                # st.write(styled_df.to_html(), unsafe_allow_html=True)
 
         with col2:
             st.markdown(f"<h3 style='text-align: center;'>Heating Tables</h3>", unsafe_allow_html=True)
             for title, df in heating_tables:
                 st.write(f"#### {title}")
                 df = df.round(2).fillna('')
-                styled_df = df.style.set_table_styles(
-                    [{'selector': 'th', 'props': [('white-space', 'normal'), ('word-wrap', 'break-word')]}]
-                )
-                st.write(styled_df.to_html(), unsafe_allow_html=True)
+                st.dataframe(df)
+                # styled_df = df.style.set_table_styles(
+                #     [{'selector': 'th', 'props': [('white-space', 'normal'), ('word-wrap', 'break-word')]}]
+                # )
+                # st.write(styled_df.to_html(), unsafe_allow_html=True)
 
             # Add a Download PDF button
     if st.button("Download PDF"):
