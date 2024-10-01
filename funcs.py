@@ -19,7 +19,7 @@ def extract_tables_from_html(file_content, progress_bar, total_zones, status_tex
         if event == 'start':
             if elem.tag == 'p' and 'For:' in ''.join(elem.itertext()) and 'Entire Facility' not in ''.join(elem.itertext()):
                 zone_name_elem = elem.find('b')
-                if zone_name_elem is not None:
+                if zone_name_elem.text is not None:
                     zone_name = zone_name_elem.text.strip()
                 else:
                     zone_name = 'Unknown Zone'
