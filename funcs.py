@@ -67,7 +67,7 @@ def count_zones_in_toc(file_content):
     import re
 
     # Read the file content line by line up to a reasonable limit
-    max_lines = 2000  # Adjust as needed based on your file structure
+    max_lines = 2000  # Adjust as needed based on file structure
     toc_started = False
     toc_content = ''
     zone_links = []
