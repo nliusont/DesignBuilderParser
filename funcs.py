@@ -94,11 +94,18 @@ def count_zones_in_toc(file_content):
 
 def generate_excel(zone_tables):
     from openpyxl import Workbook
+    from openpyxl.styles import Border, Side, Font
     from openpyxl.utils import get_column_letter
     # Create a new Excel workbook and a worksheet
     workbook = Workbook()
     worksheet = workbook.active
     worksheet.title = "Zone Tables"
+
+    # Define a thin border style
+    thin_border = Border(left=Side(style='thin'), 
+                         right=Side(style='thin'), 
+                         top=Side(style='thin'), 
+                         bottom=Side(style='thin'))
 
     # Start writing from the first row
     row_index = 1
@@ -106,6 +113,7 @@ def generate_excel(zone_tables):
     for zone_name in sorted(zone_tables.keys()):
         # Write the zone name as a header
         worksheet.cell(row=row_index, column=1, value=f"Zone: {zone_name}")
+        worksheet.cell(row=row_index, column=1).font = Font(bold=True)  # Bold the zone name
         row_index += 2  # Add some space after the header
 
         # Separate the tables into cooling and heating tables
@@ -120,24 +128,30 @@ def generate_excel(zone_tables):
             if i < len(cooling_tables):
                 cooling_title, cooling_df = cooling_tables[i]
                 # Write title
-                worksheet.cell(row=row_index, column=1, value=cooling_title)
+                worksheet.cell(row=row_index, column=1, value=f"{zone_name} - {cooling_title}")
+                worksheet.cell(row=row_index, column=1).font = Font(bold=True)  # Bold the title
                 row_index += 1  # Move to next row
-                # Write DataFrame to Excel
+                
+                # Write DataFrame to Excel with borders
                 for r_idx, row in enumerate(cooling_df.itertuples(index=False), start=row_index):
                     for c_idx, value in enumerate(row, start=1):
-                        worksheet.cell(row=r_idx, column=c_idx, value=value)
+                        cell = worksheet.cell(row=r_idx, column=c_idx, value=value)
+                        cell.border = thin_border  # Apply border to each cell
                 row_index += len(cooling_df) + 2  # Move down after the table with spacing
 
             # Heating Table
             if i < len(heating_tables):
                 heating_title, heating_df = heating_tables[i]
                 # Write title
-                worksheet.cell(row=row_index, column=1, value=heating_title)
+                worksheet.cell(row=row_index, column=1, value=f"{zone_name} - {heating_title}")
+                worksheet.cell(row=row_index, column=1).font = Font(bold=True)  # Bold the title
                 row_index += 1  # Move to next row
-                # Write DataFrame to Excel
+                
+                # Write DataFrame to Excel with borders
                 for r_idx, row in enumerate(heating_df.itertuples(index=False), start=row_index):
                     for c_idx, value in enumerate(row, start=1):
-                        worksheet.cell(row=r_idx, column=c_idx, value=value)
+                        cell = worksheet.cell(row=r_idx, column=c_idx, value=value)
+                        cell.border = thin_border  # Apply border to each cell
                 row_index += len(heating_df) + 2  # Move down after the table with spacing
 
             # Add a separator row
