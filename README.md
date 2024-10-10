@@ -2,6 +2,8 @@
 
 This project is a Streamlit application that parses DesignBuilder report files in HTM format. It extracts cooling and heating load data for different zones and presents it in a user-friendly format. Users can process reports and download the extracted data as a PDF.
 
+A public version of the app is available [here](https://maaraepulawppmtfmdiknc.streamlit.app/).
+
 ## Features
 
 - Upload HTM or HTML files containing DesignBuilder reports.
