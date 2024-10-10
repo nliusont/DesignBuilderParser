@@ -109,7 +109,7 @@ else:
 # Footer
 st.markdown("---")
 st.markdown("""
-    This application parses DesignBuilder report files and outputs them into a more readable form.
-    It was built by [Nicholas Liu-Sontag](https://www.nls.website/). 
+    This application parses DesignBuilder report files and outputs them into a more readable form.\n
+    It was built by [Nicholas Liu-Sontag](https://www.nls.website/). \n
     [GitHub](https://github.com/nliusont/DesignBuilderParser)
 """)
