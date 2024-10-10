@@ -1,9 +1,5 @@
 import streamlit as st
-from funcs import \
-    extract_tables_from_html, \
-    count_zones_in_toc, \
-    generate_excel, \
-    process_dataframe_for_styler
+from funcs import extract_tables_from_html, count_zones_in_toc, generate_excel, process_dataframe_for_styler
 
 st.set_page_config(layout="wide")
 
@@ -90,19 +86,16 @@ if st.session_state['zone_tables']:
                 # st.write(styled_df.to_html(), unsafe_allow_html=True)
 
             # Add a Download PDF button
-    if st.button("Download PDF"):
-        with st.spinner("Generating PDF..."):
-            # Create a progress bar
-            pdf_progress_bar = st.progress(0)
-            pdf_data = generate_excel(zone_tables, pdf_progress_bar)
-            pdf_progress_bar.empty()  # Remove the progress bar after completion
-            st.success("PDF generated successfully!")
-            st.download_button(
-                label="Download PDF",
-                data=pdf_data,
-                file_name="zone_tables.pdf",
-                mime="application/pdf"
-            )
+            if st.button("Download Excel"):
+                with st.spinner("Generating Excel..."):
+                    excel_file = generate_excel(zone_tables)
+                    st.success("Excel generated successfully!")
+                    st.download_button(
+                        label="Download Excel",
+                        data=open(excel_file, 'rb').read(),
+                        file_name="zone_tables.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    )
 
 else:
     if uploaded_file is not None:
