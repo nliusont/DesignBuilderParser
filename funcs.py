@@ -162,7 +162,15 @@ def generate_excel(zone_tables):
             # Add a separator row
             row_index += 1  # Add an extra space between different zones
 
+    # Auto-adjust column width for better readability
+    for col in range(1, worksheet.max_column + 1):
+        column_letter = get_column_letter(col)
+        worksheet.column_dimensions[column_letter].width = 20
 
+    # Save the workbook
+    output_file = "zone_tables.xlsx"
+    workbook.save(output_file)
+    return output_file
     
 def clean_filename(name):
     import re
