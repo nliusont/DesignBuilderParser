@@ -32,3 +32,6 @@ You can run it with the following command:
 ```bash
 streamlit run app.py
 ```
+
+## License
+This project is licensed under the [MIT License](https://en.wikipedia.org/wiki/MIT_License). Software is provided "as is", without warranty of any kind.
