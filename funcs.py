@@ -90,82 +90,97 @@ def count_zones_in_toc(file_content):
     zone_links = re.findall(r'<a href="#ZoneComponentLoadSummary::(.*?)">', toc_content)
     return len(zone_links)
 
+def apply_table_format(ws, start_row, start_col, df, title, is_cooling=True):
+    from openpyxl.styles import Font, Border, Side, Alignment, PatternFill
+    from openpyxl.utils.dataframe import dataframe_to_rows
+    
+    # Define the fill colors for cooling and heating tables
+    cooling_fill = PatternFill(start_color="ADD8E6", end_color="ADD8E6", fill_type="solid")  # Light blue
+    heating_fill = PatternFill(start_color="FFB6C1", end_color="FFB6C1", fill_type="solid")  # Light red
+    
+    # Apply the appropriate fill color based on the type of table (cooling or heating)
+    title_fill = cooling_fill if is_cooling else heating_fill
+    
+    # Write the title in the first cell, apply the fill color, bold, and alignment
+    title_mid_col = start_col + df.shape[1] // 2
+    for col_num in range(start_col, start_col + df.shape[1] + 1):  # Apply fill to all title cells
+        cell = ws.cell(row=start_row, column=col_num)
+        cell.fill = title_fill
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+        if col_num == title_mid_col:
+            cell.value = title  # Place the title in the middle cell
+            cell.font = Font(bold=True)
 
+    # Add the DataFrame headers (use 'Metric' instead of 'Index')
+    for col_num, header in enumerate(['Metric'] + list(df.columns), start=start_col):
+        cell = ws.cell(row=start_row + 1, column=col_num, value=header)
+        cell.font = Font(bold=True)
+        cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+        cell.border = Border(left=Side(style='thin'), 
+                             right=Side(style='thin'), 
+                             top=Side(style='thin'), 
+                             bottom=Side(style='thin'))
+
+    # Add the DataFrame data and ensure numbers are written as numeric types
+    for row_num, row_data in enumerate(df.itertuples(index=True), start=start_row + 2):
+        for col_num, value in enumerate(row_data, start=start_col):
+            # Convert values that are numeric (but stored as strings) to float or int
+            try:
+                value = float(value) if '.' in str(value) else int(value)
+            except (ValueError, TypeError):
+                pass  # Keep as string if it can't be converted
+            cell = ws.cell(row=row_num, column=col_num, value=value)
+            cell.alignment = Alignment(horizontal='center', vertical='center')
+            cell.border = Border(left=Side(style='thin'), 
+                                 right=Side(style='thin'), 
+                                 top=Side(style='thin'), 
+                                 bottom=Side(style='thin'))
+
+    # Return the last row where the table was inserted
+    return start_row + len(df) + 2
 
 def generate_excel(zone_tables):
-    from openpyxl import Workbook
-    from openpyxl.styles import Border, Side, Font
-    from openpyxl.utils import get_column_letter
-    from openpyxl.utils.dataframe import dataframe_to_rows
+    from io import BytesIO
+    import openpyxl 
+    from openpyxl.styles import Border, Side
 
-    # Create a new Excel workbook and a worksheet
-    workbook = Workbook()
-    worksheet = workbook.active
-    worksheet.title = "Zone Tables"
+    output = BytesIO()
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Zone Tables"
 
-    # Define some styling for headers and borders
-    header_font = Font(bold=True)
-    border_style = Border(
-        left=Side(style='thin'),
-        right=Side(style='thin'),
-        top=Side(style='thin'),
-        bottom=Side(style='thin')
-    )
+    # Setting the thin border style
+    thin_border = Border(left=Side(style='thin'), 
+                         right=Side(style='thin'), 
+                         top=Side(style='thin'), 
+                         bottom=Side(style='thin'))
 
-    # Initialize the row where tables will start
-    start_row = 1
-
+    # Loop through the zones and add cooling and heating tables side by side
+    current_row = 1
     for zone_name, tables in zone_tables.items():
-        # Write the zone name as a merged title across both table columns
-        worksheet.merge_cells(start_row=start_row, start_column=1, end_row=start_row, end_column=10)
-        worksheet.cell(row=start_row, column=1).value = f"Zone: {zone_name}"
-        worksheet.cell(row=start_row, column=1).font = header_font
-        start_row += 1  # Move to the next row
-
-        # Separate cooling and heating tables
         cooling_tables = [(title, df) for title, df in tables if 'Cooling' in title]
         heating_tables = [(title, df) for title, df in tables if 'Heating' in title]
-
-        # Find the maximum number of rows between corresponding cooling and heating tables
-        max_table_rows = max(len(df) for _, df in cooling_tables + heating_tables) + 2  # +2 for spacing
         
-        # Write tables side by side with two columns in between
-        for (cooling_title, cooling_df), (heating_title, heating_df) in zip(cooling_tables, heating_tables):
-            # Write cooling table with index
-            cooling_start_col = 1
-            worksheet.cell(row=start_row, column=cooling_start_col).value = f"{cooling_title} (Cooling)"
-            worksheet.cell(row=start_row, column=cooling_start_col).font = header_font
-            start_row += 1
-            
-            # Convert the cooling DataFrame to rows (including index)
-            for r_idx, row in enumerate(dataframe_to_rows(cooling_df, index=True, header=True)):
-                for c_idx, value in enumerate(row, start=cooling_start_col):
-                    cell = worksheet.cell(row=start_row + r_idx, column=c_idx, value=value)
-                    cell.border = border_style
-                    if r_idx == 0:  # Apply header font
-                        cell.font = header_font
+        max_table_length = max(len(cooling_tables), len(heating_tables))
+        
+        # For each table in the cooling and heating, lay them out side by side
+        for i in range(max_table_length):
+            # Cooling table
+            if i < len(cooling_tables):
+                cooling_title, cooling_df = cooling_tables[i]
+                apply_table_format(ws, current_row, 1, cooling_df, f"{zone_name} - {cooling_title}", is_cooling=True)
+            # Heating table (starting from column 'K' which is 11th column)
+            if i < len(heating_tables):
+                heating_title, heating_df = heating_tables[i]
+                apply_table_format(ws, current_row, 11, heating_df, f"{zone_name} - {heating_title}", is_cooling=False)
 
-            # Write heating table with index next to cooling table
-            heating_start_col = cooling_start_col + len(cooling_df.columns) + 3  # Add 2 empty columns for spacing
-            worksheet.cell(row=start_row - 1, column=heating_start_col).value = f"{heating_title} (Heating)"
-            worksheet.cell(row=start_row - 1, column=heating_start_col).font = header_font
+            # Move to the next row after placing the side-by-side tables
+            current_row += max(cooling_df.shape[0], heating_df.shape[0]) + 4
 
-            # Convert the heating DataFrame to rows (including index)
-            for r_idx, row in enumerate(dataframe_to_rows(heating_df, index=True, header=True)):
-                for c_idx, value in enumerate(row, start=heating_start_col):
-                    cell = worksheet.cell(row=start_row + r_idx, column=c_idx, value=value)
-                    cell.border = border_style
-                    if r_idx == 0:  # Apply header font
-                        cell.font = header_font
-
-            # Move the row pointer after the tallest table
-            start_row += max_table_rows + 3  # Add 3 rows of spacing between each set of tables
-
-    # Save the workbook
-    output_file = "zone_tables.xlsx"
-    workbook.save(output_file)
-
-    return output_file
+    # Save the workbook into a BytesIO object
+    wb.save(output)
+    output.seek(0)  # Set pointer to the beginning of the file
+    return output
     
 def clean_filename(name):
     import re
