@@ -18,3 +18,5 @@ streamlit==1.38.0
 tenacity
 webencodings==0.5.1
 yarl==1.13.1
+matplotlib
+openpyxl
