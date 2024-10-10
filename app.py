@@ -88,11 +88,10 @@ if st.session_state['zone_tables']:
             # Add a Download PDF button
             if st.button("Download Excel"):
                 with st.spinner("Generating Excel..."):
-                    excel_file = generate_excel(zone_tables)
-                    st.success("Excel generated successfully!")
+                    excel_data = generate_excel(st.session_state['zone_tables'])
                     st.download_button(
                         label="Download Excel",
-                        data=open(excel_file, 'rb').read(),
+                        data=excel_data,
                         file_name="zone_tables.xlsx",
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     )
