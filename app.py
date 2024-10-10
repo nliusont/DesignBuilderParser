@@ -67,10 +67,10 @@ if st.session_state['zone_tables']:
             for title, df in cooling_tables:
                 st.write(f"#### {title}")
                 df = df.round(2).fillna('')
-                st.dataframe(df)
-                # styled_df = df.style.set_table_styles(
-                #     [{'selector': 'th', 'props': [('white-space', 'normal'), ('word-wrap', 'break-word')]}]
-                # )
+                styled_df = df.style.set_table_styles(
+                    [{'selector': 'th', 'props': [('white-space', 'normal'), ('word-wrap', 'break-word')]}]
+                )
+                st.dataframe(styled_df, use_container_width=True)
                 # st.write(styled_df.to_html(), unsafe_allow_html=True)
 
         with col2:
@@ -78,10 +78,11 @@ if st.session_state['zone_tables']:
             for title, df in heating_tables:
                 st.write(f"#### {title}")
                 df = df.round(2).fillna('')
-                st.dataframe(df)
-                # styled_df = df.style.set_table_styles(
-                #     [{'selector': 'th', 'props': [('white-space', 'normal'), ('word-wrap', 'break-word')]}]
-                # )
+                
+                styled_df = df.style.set_table_styles(
+                    [{'selector': 'th', 'props': [('white-space', 'normal'), ('word-wrap', 'break-word')]}]
+                )
+                st.dataframe(styled_df, use_container_width=True)
                 # st.write(styled_df.to_html(), unsafe_allow_html=True)
 
             # Add a Download PDF button
@@ -104,3 +105,11 @@ else:
         st.write("No zones processed yet. Please click 'Process Report'.")
     else:
         st.write("No zones processed yet. Please upload a file and click 'Process Report'.")
+
+# Footer
+st.markdown("---")
+st.markdown("""
+    This application parses DesignBuilder report files and outputs them into a more readable form.
+    It was built by [Nicholas Liu-Sontag](https://www.nls.website/). 
+    [GitHub](https://github.com/nliusont/DesignBuilderParser)
+""")
