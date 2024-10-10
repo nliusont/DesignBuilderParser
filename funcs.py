@@ -97,9 +97,16 @@ def generate_excel(zone_tables):
     from openpyxl.utils import get_column_letter
     # Create a new Excel workbook and a worksheet
     workbook = Workbook()
-    
+    worksheet = workbook.active
+    worksheet.title = "Zone Tables"
+
+    # Start writing from the first row
+    row_index = 1
+
     for zone_name in sorted(zone_tables.keys()):
-        worksheet = workbook.create_sheet(title=zone_name)
+        # Write the zone name as a header
+        worksheet.cell(row=row_index, column=1, value=f"Zone: {zone_name}")
+        row_index += 2  # Add some space after the header
 
         # Separate the tables into cooling and heating tables
         tables = zone_tables[zone_name]
@@ -109,32 +116,37 @@ def generate_excel(zone_tables):
         max_tables = max(len(cooling_tables), len(heating_tables))
 
         for i in range(max_tables):
-            row_offset = i * 20  # Add spacing between tables
-
             # Cooling Table
             if i < len(cooling_tables):
                 cooling_title, cooling_df = cooling_tables[i]
                 # Write title
-                worksheet.cell(row=row_offset + 1, column=1, value=cooling_title)
+                worksheet.cell(row=row_index, column=1, value=cooling_title)
+                row_index += 1  # Move to next row
                 # Write DataFrame to Excel
-                for r_idx, row in enumerate(cooling_df.itertuples(index=False), start=row_offset + 2):
+                for r_idx, row in enumerate(cooling_df.itertuples(index=False), start=row_index):
                     for c_idx, value in enumerate(row, start=1):
                         worksheet.cell(row=r_idx, column=c_idx, value=value)
-            
+                row_index += len(cooling_df) + 2  # Move down after the table with spacing
+
             # Heating Table
             if i < len(heating_tables):
                 heating_title, heating_df = heating_tables[i]
                 # Write title
-                worksheet.cell(row=row_offset + 1, column=len(cooling_df.columns) + 3, value=heating_title)
+                worksheet.cell(row=row_index, column=1, value=heating_title)
+                row_index += 1  # Move to next row
                 # Write DataFrame to Excel
-                for r_idx, row in enumerate(heating_df.itertuples(index=False), start=row_offset + 2):
-                    for c_idx, value in enumerate(row, start=len(cooling_df.columns) + 3):
+                for r_idx, row in enumerate(heating_df.itertuples(index=False), start=row_index):
+                    for c_idx, value in enumerate(row, start=1):
                         worksheet.cell(row=r_idx, column=c_idx, value=value)
+                row_index += len(heating_df) + 2  # Move down after the table with spacing
 
-            # Auto-adjust column width
-            for col in range(1, worksheet.max_column + 1):
-                column_letter = get_column_letter(col)
-                worksheet.column_dimensions[column_letter].width = 20
+            # Add a separator row
+            row_index += 1  # Add an extra space between different zones
+
+    # Auto-adjust column width for better readability
+    for col in range(1, worksheet.max_column + 1):
+        column_letter = get_column_letter(col)
+        worksheet.column_dimensions[column_letter].width = 20
 
     # Save the workbook
     output_file = "zone_tables.xlsx"
