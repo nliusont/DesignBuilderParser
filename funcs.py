@@ -90,120 +90,58 @@ def count_zones_in_toc(file_content):
     zone_links = re.findall(r'<a href="#ZoneComponentLoadSummary::(.*?)">', toc_content)
     return len(zone_links)
 
-def generate_pdf(zone_tables, progress_bar):
-    from reportlab.lib.pagesizes import letter
-    from reportlab.platypus import SimpleDocTemplate, Image, Spacer, Paragraph, PageBreak, Table, TableStyle
-    from reportlab.lib.styles import getSampleStyleSheet
-    from reportlab.lib.enums import TA_CENTER
-    from reportlab.lib.utils import ImageReader
-    from reportlab.lib import colors
-    from io import BytesIO
-    import dataframe_image as dfi
-    import tempfile
-    import os
-    from funcs import clean_filename
 
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter)
-    elements = []
-    styles = getSampleStyleSheet()
-    styles['Heading1'].alignment = TA_CENTER
-    styles['Heading3'].alignment = TA_CENTER
 
-    total_zones = len(zone_tables)
-    processed_zones = 0
+def generate_excel(zone_tables):
+    from openpyxl import Workbook
+    from openpyxl.utils import get_column_letter
+    # Create a new Excel workbook and a worksheet
+    workbook = Workbook()
+    
+    for zone_name in sorted(zone_tables.keys()):
+        worksheet = workbook.create_sheet(title=zone_name)
 
-    # Create a temporary directory for all images
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        for zone_name in sorted(zone_tables.keys()):
-            elements.append(Paragraph(zone_name, styles['Heading1']))
-            elements.append(Spacer(1, 12))
+        # Separate the tables into cooling and heating tables
+        tables = zone_tables[zone_name]
+        cooling_tables = [(title, df) for title, df in tables if 'Cooling' in title]
+        heating_tables = [(title, df) for title, df in tables if 'Heating' in title]
 
-            # Separate the tables into cooling and heating tables
-            tables = zone_tables[zone_name]
-            cooling_tables = [(title, df) for title, df in tables if 'Cooling' in title]
-            heating_tables = [(title, df) for title, df in tables if 'Heating' in title]
+        max_tables = max(len(cooling_tables), len(heating_tables))
 
-            # Create temporary images for the tables
-            cooling_images = []
-            heating_images = []
+        for i in range(max_tables):
+            row_offset = i * 20  # Add spacing between tables
 
-            for title, df in cooling_tables:
-                img_filename = f"{clean_filename(zone_name)}_{clean_filename(title)}.png"
-                img_path = os.path.join(tmpdirname, img_filename)
-                dfi.export(df, img_path, max_cols=-1, max_rows=-1, table_conversion='matplotlib')
-                cooling_images.append((title, img_path))
+            # Cooling Table
+            if i < len(cooling_tables):
+                cooling_title, cooling_df = cooling_tables[i]
+                # Write title
+                worksheet.cell(row=row_offset + 1, column=1, value=cooling_title)
+                # Write DataFrame to Excel
+                for r_idx, row in enumerate(cooling_df.itertuples(index=False), start=row_offset + 2):
+                    for c_idx, value in enumerate(row, start=1):
+                        worksheet.cell(row=r_idx, column=c_idx, value=value)
+            
+            # Heating Table
+            if i < len(heating_tables):
+                heating_title, heating_df = heating_tables[i]
+                # Write title
+                worksheet.cell(row=row_offset + 1, column=len(cooling_df.columns) + 3, value=heating_title)
+                # Write DataFrame to Excel
+                for r_idx, row in enumerate(heating_df.itertuples(index=False), start=row_offset + 2):
+                    for c_idx, value in enumerate(row, start=len(cooling_df.columns) + 3):
+                        worksheet.cell(row=r_idx, column=c_idx, value=value)
 
-            for title, df in heating_tables:
-                img_filename = f"{clean_filename(zone_name)}_{clean_filename(title)}.png"
-                img_path = os.path.join(tmpdirname, img_filename)
-                dfi.export(df, img_path, max_cols=-1, max_rows=-1, table_conversion='matplotlib')
-                heating_images.append((title, img_path))
+            # Auto-adjust column width
+            for col in range(1, worksheet.max_column + 1):
+                column_letter = get_column_letter(col)
+                worksheet.column_dimensions[column_letter].width = 20
 
-            # Determine the maximum number of tables to align them
-            max_tables = max(len(cooling_images), len(heating_images))
+    # Save the workbook
+    output_file = "zone_tables.xlsx"
+    workbook.save(output_file)
+    return output_file
 
-            for i in range(max_tables):
-                data = []
 
-                # Cooling Table
-                if i < len(cooling_images):
-                    cooling_title = Paragraph(cooling_images[i][0], styles['Heading3'])
-                    # Get image dimensions
-                    cooling_img = cooling_images[i][1]
-                    cooling_image_reader = ImageReader(cooling_img)
-                    iw, ih = cooling_image_reader.getSize()
-                    aspect = ih / float(iw)
-                    cooling_image = Image(cooling_img, width=250, height=250*aspect)
-                    cooling_cell = [cooling_title, cooling_image]
-                else:
-                    cooling_cell = [Spacer(1, 1), Spacer(1, 1)]
-
-                # Heating Table
-                if i < len(heating_images):
-                    heating_title = Paragraph(heating_images[i][0], styles['Heading3'])
-                    heating_img = heating_images[i][1]
-                    heating_image_reader = ImageReader(heating_img)
-                    iw, ih = heating_image_reader.getSize()
-                    aspect = ih / float(iw)
-                    heating_image = Image(heating_img, width=250, height=250*aspect)
-                    heating_cell = [heating_title, heating_image]
-                else:
-                    heating_cell = [Spacer(1, 1), Spacer(1, 1)]
-
-                # Create a table row
-                data.append([cooling_cell, heating_cell])
-
-                # Flatten the data for the Table (since each cell contains a list)
-                table_data = []
-                for row in data:
-                    table_row = []
-                    for cell in row:
-                        table_row.append(cell)
-                    table_data.append(table_row)
-
-                # Create a table with the data
-                table = Table(table_data, colWidths=[260, 260])
-                table.setStyle(TableStyle([
-                    ('VALIGN', (0,0), (-1,-1), 'TOP'),
-                    ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-                    ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
-                ]))
-                elements.append(table)
-                elements.append(Spacer(1, 12))
-
-            elements.append(PageBreak())
-
-            # Update the progress bar
-            processed_zones += 1
-            progress = processed_zones / total_zones
-            progress_bar.progress(progress)
-
-        # Build the PDF after all elements are added
-        doc.build(elements)
-        pdf_data = buffer.getvalue()
-        buffer.close()
-        return pdf_data
     
 def clean_filename(name):
     import re

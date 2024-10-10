@@ -1,5 +1,9 @@
 import streamlit as st
-from funcs import extract_tables_from_html, count_zones_in_toc, generate_pdf, process_dataframe_for_styler
+from funcs import \
+    extract_tables_from_html, \
+    count_zones_in_toc, \
+    generate_excel, \
+    process_dataframe_for_styler
 
 st.set_page_config(layout="wide")
 
@@ -90,7 +94,7 @@ if st.session_state['zone_tables']:
         with st.spinner("Generating PDF..."):
             # Create a progress bar
             pdf_progress_bar = st.progress(0)
-            pdf_data = generate_pdf(zone_tables, pdf_progress_bar)
+            pdf_data = generate_excel(zone_tables, pdf_progress_bar)
             pdf_progress_bar.empty()  # Remove the progress bar after completion
             st.success("PDF generated successfully!")
             st.download_button(
