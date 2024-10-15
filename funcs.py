@@ -71,6 +71,7 @@ def count_zones_in_toc(file_content):
     toc_started = False
     toc_content = ''
     zone_links = []
+    building_name = "Unknown"  # Default if not found
     
     # Decode the file content for line-by-line processing
     content_stream = StringIO(file_content.decode('utf-8', errors='ignore'))
@@ -79,16 +80,28 @@ def count_zones_in_toc(file_content):
         line = content_stream.readline()
         if not line:
             break  # End of file reached
+        
+        # Extract the building name
+        if 'Building:' in line:
+            building_name_match = re.search(r'Building:\s*<b>(.*?)</b>', line)
+            if building_name_match:
+                building_name = building_name_match.group(1).strip()
+        
+        # Start capturing the Table of Contents
         if '<p><b>Zone Component Load Summary' in line:
             toc_started = True
         elif toc_started and '<p><b>' in line and 'Zone Component Load Summary' not in line:
             break  # End of Table of Contents
+        
+        # Collect TOC content
         if toc_started:
             toc_content += line
 
     # Use regex to find all zone links in the TOC
     zone_links = re.findall(r'<a href="#ZoneComponentLoadSummary::(.*?)">', toc_content)
-    return len(zone_links)
+    
+    # Return the zone count and building name
+    return len(zone_links), building_name
 
 def apply_table_format(ws, start_row, start_col, df, title, is_cooling=True):
     from openpyxl.styles import Font, Border, Side, Alignment, PatternFill
@@ -138,6 +151,22 @@ def apply_table_format(ws, start_row, start_col, df, title, is_cooling=True):
 
     # Return the last row where the table was inserted
     return start_row + len(df) + 2
+
+def extract_building_name(file_content):
+    """
+    Extract the building name from the HTML content.
+    """
+    from bs4 import BeautifulSoup
+    
+    soup = BeautifulSoup(file_content, 'html.parser')
+    
+    # Find the 'Building' tag and extract the building name
+    building_tag = soup.find('p', text=lambda x: x and 'Building:' in x)
+    if building_tag:
+        building_name = building_tag.find('b').text.strip()
+        return building_name
+    else:
+        return "Unknown"
 
 def generate_excel(zone_tables):
     from io import BytesIO

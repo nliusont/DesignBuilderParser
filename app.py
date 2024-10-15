@@ -1,11 +1,13 @@
 import streamlit as st
-from funcs import extract_tables_from_html, count_zones_in_toc, generate_excel, process_dataframe_for_styler
+from funcs import extract_tables_from_html, count_zones_in_toc, generate_excel
+from datetime import datetime
 
 st.set_page_config(layout="wide")
 
 st.title("DesignBuilder Report Parser")
 
 uploaded_file = st.file_uploader("Choose an HTM file", type=['htm', 'html'])
+date = datetime.now().strftime("%m%d%Y")
 
 # Initialize session state variables if they don't exist
 if 'zone_tables' not in st.session_state:
@@ -28,7 +30,8 @@ if uploaded_file is not None:
     # Provide a button to process the report
     if st.button("Process Report"):
         # Count the number of zones from the table of contents
-        total_zones = count_zones_in_toc(file_content)
+        total_zones, building_name = count_zones_in_toc(file_content)
+        st.session_state['building_name'] = building_name
         if total_zones == 0:
             st.warning("No zones found in the Table of Contents.")
         else:
@@ -40,7 +43,7 @@ if uploaded_file is not None:
             st.session_state['zone_tables'] = extract_tables_from_html(
                     file_content, progress_bar, total_zones, status_text
                 )
-            status_text.write("Processing complete!")
+            status_text.write(f"Processing for {building_name} complete!")
             progress_bar.empty()
 else:
     st.write("Please upload an HTM file.")
@@ -89,10 +92,11 @@ if st.session_state['zone_tables']:
             if st.button("Download Excel"):
                 with st.spinner("Generating Excel..."):
                     excel_data = generate_excel(st.session_state['zone_tables'])
+                    building_name = st.session_state['building_name']
                     st.download_button(
                         label="Download Excel",
                         data=excel_data,
-                        file_name="zone_tables.xlsx",
+                        file_name=f"{building_name}_zone_tables_{date}.xlsx",
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     )
 
