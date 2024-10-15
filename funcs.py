@@ -152,22 +152,6 @@ def apply_table_format(ws, start_row, start_col, df, title, is_cooling=True):
     # Return the last row where the table was inserted
     return start_row + len(df) + 2
 
-def extract_building_name(file_content):
-    """
-    Extract the building name from the HTML content.
-    """
-    from bs4 import BeautifulSoup
-    
-    soup = BeautifulSoup(file_content, 'html.parser')
-    
-    # Find the 'Building' tag and extract the building name
-    building_tag = soup.find('p', text=lambda x: x and 'Building:' in x)
-    if building_tag:
-        building_name = building_tag.find('b').text.strip()
-        return building_name
-    else:
-        return "Unknown"
-
 def generate_excel(zone_tables):
     from io import BytesIO
     import openpyxl 
